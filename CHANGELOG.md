@@ -1,5 +1,20 @@
 # Change Log
 
+## 4.17.0 (Pre-release)
+
+- Add:
+  1. 新增题库浏览命令，支持关键词、题库类型、难度、标签筛选与分页，并可直接打开题目
+  2. 增强提交按钮状态反馈，并支持在评测记录页下载测试数据
+  3. 支持在题目页面安全展示附件及下载链接
+- Fix:
+  1. 适配当前洛谷题目列表 API，修复随机跳题失效问题
+  2. 安全渲染 anti-ai 与未知 Markdown 指令，并恢复行内代码等宽样式
+  3. 防止题库快速连续查询时旧响应覆盖最新筛选结果
+- Engineering:
+  1. 移除已弃用的 `@vscode/webview-ui-toolkit`，迁移到使用 VS Code 主题变量的原生 React 控件
+  2. 更新 fast-uri、js-yaml、postcss 和 brace-expansion 等依赖
+  3. 增加题库 API、Webview 消息、UI 控件及相关回归测试
+
 ## 4.16.0
 
 - Add:
