@@ -80,8 +80,14 @@ type JumpToCphMessageType = WebviewMessage<
   WebviewResponseMessage<void>
 >;
 type SubmitProblemMessageType = WebviewMessage<
-  WebviewRequestMessage<'submitProblem', void>,
+  WebviewRequestMessage<'submitProblem', { language: string }>,
   WebviewResponseMessage<boolean>
+>;
+type GetSubmissionContextMessageType = WebviewMessage<
+  WebviewRequestMessage<'getSubmissionContext', void>,
+  WebviewResponseMessage<
+    import('./views/viewProblem/submissionTypes').ProblemSubmissionContext
+  >
 >;
 type GetSolutionDetailsMessageType = WebviewMessage<
   WebviewRequestMessage<'getSolutionDetails', { index: number }>,
@@ -90,6 +96,17 @@ type GetSolutionDetailsMessageType = WebviewMessage<
 type VoteArticleMessageType = WebviewMessage<
   WebviewRequestMessage<'voteArticle', { lid: string; type: 1 | 0 | -1 }>,
   WebviewResponseMessage<{ upvotes: number; voted: 1 | 0 | -1 }>
+>;
+type GetContestProblemNavigationMessageType = WebviewMessage<
+  WebviewRequestMessage<'getContestProblemNavigation', void>,
+  WebviewResponseMessage<
+    | import('./views/viewProblem/contestProblemNavigationTypes').ContestProblemNavigation
+    | null
+  >
+>;
+type OpenContestProblemMessageType = WebviewMessage<
+  WebviewRequestMessage<'openContestProblem', { pid: string }>,
+  WebviewResponseMessage<import('luogu-api').ProblemData | null>
 >;
 type ContestRanklist = WebviewMessage<
   WebviewRequestMessage<'ContestRanklist', { page: number }>,
@@ -115,6 +132,25 @@ type ContestMonitorStop = WebviewMessage<
   WebviewRequestMessage<'ContestMonitorStop', void>,
   WebviewResponseMessage<boolean>
 >;
+type QueryDownloadableTestcaseMessageType = WebviewMessage<
+  WebviewRequestMessage<'QueryDownloadableTestcase', void>,
+  WebviewResponseMessage<number | null>
+>;
+type DownloadTestcaseMessageType = WebviewMessage<
+  WebviewRequestMessage<'DownloadTestcase', { testcaseId: number }>,
+  WebviewResponseMessage<boolean>
+>;
+type ProblemListSearchMessageType = WebviewMessage<
+  WebviewRequestMessage<
+    'ProblemListSearch',
+    import('@/features/problemList/types').ProblemListFilters
+  >,
+  WebviewResponseMessage<import('@/features/problemList/types').ProblemList>
+>;
+type OpenProblemFromListMessageType = WebviewMessage<
+  WebviewRequestMessage<'OpenProblemFromList', { pid: string }>,
+  WebviewResponseMessage<void>
+>;
 type MessageTypes = MessageTypesBase<
   // Add new types in this array.
   [
@@ -131,14 +167,21 @@ type MessageTypes = MessageTypesBase<
     checkCphMessageType,
     JumpToCphMessageType,
     SubmitProblemMessageType,
+    GetSubmissionContextMessageType,
     GetSolutionDetailsMessageType,
     VoteArticleMessageType,
+    GetContestProblemNavigationMessageType,
+    OpenContestProblemMessageType,
     ContestRanklist,
     ContestReload,
     ContestJoin,
     ContestEnterContestMode,
     ContestMonitorGet,
-    ContestMonitorStop
+    ContestMonitorStop,
+    QueryDownloadableTestcaseMessageType,
+    DownloadTestcaseMessageType,
+    ProblemListSearchMessageType,
+    OpenProblemFromListMessageType
   ]
 >;
 export default MessageTypes;

@@ -27,7 +27,10 @@ const {
   parseProblemID,
   resolveSubmissionProblem,
   CSRF_TOKEN_REGEX,
-  axios
+  axios,
+  sendMail2fa,
+  queryDownloadableTestcase,
+  downloadTestcase
 } = await import('./api');
 
 describe('unauthenticated responses', () => {
@@ -110,6 +113,43 @@ describe('CSRF request interceptor', () => {
       { url: '/test-mutation', token: '2000000000:test-token' }
     ]);
   });
+
+  it('uses the temporary 2FA session for both CSRF and mail requests', async () => {
+    const temporaryCookie = { uid: 42, clientID: 'temporary-client' };
+    const requests: { url?: string; cookie?: string; token?: unknown }[] = [];
+    axios.defaults.adapter = async config => {
+      requests.push({
+        url: config.url,
+        cookie: config.headers.get('cookie') as string | undefined,
+        token: config.headers.get('X-CSRF-Token')
+      });
+      return {
+        data:
+          config.url === API.AUTH_CSRF_TOKEN
+            ? '<meta name="csrf-token" content="temporary-token">'
+            : { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config
+      };
+    };
+
+    await sendMail2fa('captcha', temporaryCookie);
+
+    expect(requests).toEqual([
+      {
+        url: API.AUTH_CSRF_TOKEN,
+        cookie: '_uid=42;__client_id=temporary-client',
+        token: undefined
+      },
+      {
+        url: API.SEND_MAIL_2FA,
+        cookie: '_uid=42;__client_id=temporary-client',
+        token: 'temporary-token'
+      }
+    ]);
+  });
 });
 
 describe('parseProblemID', () => {
@@ -170,6 +210,96 @@ describe('API routes', () => {
     expect(API.VOTE_ARTICLE('abc')).toBe('/article/abc/vote');
     expect(API.JOIN_CONTEST(42)).toBe('/contest/42/join');
     expect(API.AUTH_CSRF_TOKEN).toBe('/auth/login');
+    expect(API.QUERY_DOWNLOADABLE_TESTCASE(123)).toBe(
+      '/fe/api/record/queryDownloadableTestcase/123'
+    );
+    expect(API.DOWNLOAD_TESTCASE(123)).toBe(
+      '/fe/api/record/downloadTestcase/123'
+    );
+  });
+});
+
+describe('record testcase downloads', () => {
+  it('queries the downloadable testcase ID', async () => {
+    axios.defaults.adapter = async config => ({
+      data: { testcaseId: 4 },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config
+    });
+
+    await expect(queryDownloadableTestcase(123)).resolves.toBe(4);
+  });
+
+  it('accepts a record without a downloadable testcase', async () => {
+    axios.defaults.adapter = async config => ({
+      data: { testcaseId: null },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config
+    });
+
+    await expect(queryDownloadableTestcase(123)).resolves.toBeNull();
+  });
+
+  it('rejects malformed availability responses', async () => {
+    axios.defaults.adapter = async config => ({
+      data: { testcaseId: '4' },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config
+    });
+
+    await expect(queryDownloadableTestcase(123)).rejects.toThrow(
+      '无效的可下载测试点信息'
+    );
+  });
+
+  it('downloads testcase input and output using the documented payload', async () => {
+    let requestData: unknown;
+    axios.defaults.adapter = async config => {
+      requestData = JSON.parse(config.data);
+      return {
+        data: { status: 200, data: { input: '1 2\n', output: '3\n' } },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config
+      };
+    };
+
+    await expect(downloadTestcase(123, 4)).resolves.toEqual({
+      input: '1 2\n',
+      output: '3\n'
+    });
+    expect(requestData).toEqual({ testcaseId: 4 });
+  });
+
+  it('rejects malformed testcase content', async () => {
+    axios.defaults.adapter = async config => ({
+      data: { status: 200, data: { input: '1 2\n' } },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config
+    });
+
+    await expect(downloadTestcase(123, 4)).rejects.toThrow('无效的测试点内容');
+  });
+
+  it('rejects non-success testcase response statuses', async () => {
+    axios.defaults.adapter = async config => ({
+      data: { status: 403, data: { input: 'hidden', output: 'hidden' } },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config
+    });
+
+    await expect(downloadTestcase(123, 4)).rejects.toThrow('无效的测试点内容');
   });
 });
 

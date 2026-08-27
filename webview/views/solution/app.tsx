@@ -1,6 +1,6 @@
 const { default: React, useState, useEffect } = await import('react');
 const { VSCodeButton, VSCodeProgressRing } = await import(
-  '@vscode/webview-ui-toolkit/react'
+  '@w/components/uiToolkit'
 );
 const { FontAwesomeIcon } = await import('@fortawesome/react-fontawesome');
 const { faThumbsDown, faThumbsUp } = await import(
@@ -62,11 +62,19 @@ function SolutionPage({
               </span>
               <span className="solution-id">
                 文章 ID：
-                <a href={'https://www.luogu.com/article/' + article.lid}>
+                <a href={'https://www.luogu.com.cn/article/' + article.lid}>
                   {article.lid}
                 </a>
               </span>
             </header>
+            {article.adminNote && (
+              <aside className="solution-admin-note" role="note">
+                <div className="solution-admin-note-title">管理员提示：</div>
+                <div className="solution-admin-note-content">
+                  <Md>{article.adminNote}</Md>
+                </div>
+              </aside>
+            )}
             <div className="solution-content">
               <Md>{article.content}</Md>
             </div>

@@ -1,7 +1,7 @@
 const { default: React, useEffect, useState } = await import('react');
-const { VSCodeButton } = await import('@vscode/webview-ui-toolkit/react');
+const { VSCodeButton } = await import('@w/components/uiToolkit');
 const { FontAwesomeIcon } = await import('@fortawesome/react-fontawesome');
-const { faChevronDown, faBook, faPaperPlane } = await import(
+const { faChevronDown, faBook } = await import(
   '@fortawesome/free-solid-svg-icons'
 );
 const { ProblemDifficultyTag } = await import('@w/components');
@@ -14,9 +14,12 @@ import '@w/utils/tags';
 import { ProblemData } from 'luogu-api';
 
 import CphIcon from './cphIcon';
+import ContestProblemNavigation from './contestProblemNavigation';
+import ProblemAttachments from './problemAttachments';
 import '@w/common.css';
 import './app.css';
-import { VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
+import SubmissionControls from './submissionControls';
+import { VSCodeDropdown, VSCodeOption } from '@w/components/uiToolkit';
 
 function formatTimeLimit(timeLimit: number[]) {
   const mintime = Math.min(...timeLimit),
@@ -36,7 +39,12 @@ function formatMemoryLimit(memoryLimit: number[]) {
     : `${minmemorystr}~${maxmemorystr}`;
 }
 
-export default function Problem({ children: data }: { children: ProblemData }) {
+export default function Problem({
+  children: initialData
+}: {
+  children: ProblemData;
+}) {
+  const [data, setData] = useState(initialData);
   const languagesList = Object.keys(data.translations);
   const [cphType, setCphType] = useState(false);
   const [choosedLanguage, setChoosedLanguage] = useState(
@@ -46,11 +54,16 @@ export default function Problem({ children: data }: { children: ProblemData }) {
     () => void send('checkCph', undefined).then(res => setCphType(res)),
     []
   );
+  useEffect(() => {
+    setChoosedLanguage(
+      'zh-CN' in data.translations ? 'zh-CN' : Object.keys(data.translations)[0]
+    );
+  }, [data.problem.pid]);
   const problemContent =
     data.translations[choosedLanguage] || data.problem.content;
   return (
     <>
-      <header>
+      <header className={data.contest ? 'withContestNavigation' : ''}>
         <div>
           <h1>
             <a
@@ -88,25 +101,17 @@ export default function Problem({ children: data }: { children: ProblemData }) {
                 </div>
               </VSCodeButton>
             )}
-            <VSCodeButton
-              onClick={() => send('submitProblem', undefined)}
-              appearance="primary"
-            >
-              <div>
-                <FontAwesomeIcon icon={faPaperPlane} /> 提交代码
-              </div>
-            </VSCodeButton>
+            <SubmissionControls key={data.problem.pid} />
             {data.problem.type !== 'T' &&
               data.problem.type !== 'U' &&
               !data.contest && (
                 <a
+                  className="vscode-button vscode-button-primary solution-link"
                   href={`command:luogu.solution?${encodeURIComponent(JSON.stringify([data.problem.pid]))}`}
                 >
-                  <VSCodeButton appearance="primary">
-                    <div>
-                      <FontAwesomeIcon icon={faBook} /> 查看题解
-                    </div>
-                  </VSCodeButton>
+                  <span>
+                    <FontAwesomeIcon icon={faBook} /> 查看题解
+                  </span>
                 </a>
               )}
           </div>
@@ -126,27 +131,28 @@ export default function Problem({ children: data }: { children: ProblemData }) {
               <ProblemDifficultyTag difficulty={data.problem.difficulty || 0} />
             </div>
           </div>
-          <div className={data.problem.tags.length ? 'haveTag' : undefined}>
-            <div>题目标签</div>
-            <div>
-              {data.problem.tags.length ? (
-                <FontAwesomeIcon icon={faChevronDown} />
-              ) : (
-                '暂无标签'
-              )}
-            </div>
+          <details className="problemTags">
+            <summary>
+              <span>题目标签</span>
+              <span>
+                {data.problem.tags.length ? (
+                  <FontAwesomeIcon icon={faChevronDown} />
+                ) : (
+                  '暂无标签'
+                )}
+              </span>
+            </summary>
             {data.problem.tags.length ? (
-              <div>
-                <div>
-                  {data.problem.tags.map((x, i) => (
-                    <ProblemTag key={i} tag={x} />
-                  ))}
-                </div>
+              <div className="problemTagList">
+                {data.problem.tags.map((x, i) => (
+                  <ProblemTag key={i} tag={x} />
+                ))}
               </div>
             ) : undefined}
-          </div>
+          </details>
         </div>
       </header>
+      <ContestProblemNavigation data={data} onProblemChange={setData} />
       <div>
         {problemContent.background && (
           <div>
@@ -209,6 +215,7 @@ export default function Problem({ children: data }: { children: ProblemData }) {
             <Markdown>{problemContent.hint}</Markdown>
           </div>
         )}
+        <ProblemAttachments attachments={data.problem.attachments} />
       </div>
     </>
   );

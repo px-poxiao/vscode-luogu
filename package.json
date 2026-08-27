@@ -3,7 +3,7 @@
   "displayName": "vscode-luogu",
   "description": "Solve Luogu Problems in VSCode",
   "icon": "resources/img/luogu-normal.png",
-  "version": "4.15.0",
+  "version": "4.17.1",
   "license": "MIT",
   "publisher": "yltx",
   "engines": {
@@ -94,6 +94,11 @@
       {
         "command": "luogu.random",
         "title": "根据题目难度和来源随机跳题(Show random problem)",
+        "category": "Luogu"
+      },
+      {
+        "command": "luogu.problemList",
+        "title": "浏览题库(Browse problem list)",
         "category": "Luogu"
       },
       {
@@ -611,7 +616,6 @@
     "@typescript-eslint/parser": "^7.3.1",
     "@vitest/coverage-v8": "^4.1.7",
     "@vscode/vsce": "^3.6.2",
-    "@vscode/webview-ui-toolkit": "^1.2.2",
     "css-loader": "^6.11.0",
     "del-cli": "^5.1.0",
     "eslint": "^8.50.0",
@@ -642,6 +646,7 @@
     "react-dom": "^18.2.0",
     "rehype-highlight": "^7.0.0",
     "rehype-react": "^8.0.0",
+    "remark-directive": "3.0.1",
     "unist-util-visit": "^5.0.0",
     "ws": "8.21.1"
   },

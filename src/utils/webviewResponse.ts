@@ -11,7 +11,15 @@ const isNumber = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value);
 const isInteger = (value: unknown) =>
   isNumber(value) && Number.isInteger(value);
+const isNonnegativeInteger = (value: unknown): value is number =>
+  typeof value === 'number' && isInteger(value) && value >= 0;
+const isPositiveInteger = (value: unknown) =>
+  isNonnegativeInteger(value) && value > 0;
 const isVoid = (value: unknown) => value === undefined;
+const isNullableDifficulty = (value: unknown) =>
+  value === null || (isNonnegativeInteger(value) && value <= 8);
+const isIntegerArray = (value: unknown) =>
+  Array.isArray(value) && value.every(isNonnegativeInteger);
 const hasShape = (value: unknown, shape: Readonly<Record<string, Validator>>) =>
   isRecord(value) &&
   Object.entries(shape).every(([key, validate]) => validate(value[key]));
@@ -39,19 +47,34 @@ const requestValidators = {
   clearLoginCookie: isVoid,
   checkCph: isVoid,
   jumpToCph: isVoid,
-  submitProblem: isVoid,
+  submitProblem: (data: unknown) => hasShape(data, { language: isString }),
+  getSubmissionContext: isVoid,
   getSolutionDetails: (data: unknown) => hasShape(data, { index: isInteger }),
   voteArticle: (data: unknown) =>
     hasShape(data, {
       lid: isString,
       type: value => value === 1 || value === 0 || value === -1
     }),
+  getContestProblemNavigation: isVoid,
+  openContestProblem: (data: unknown) => hasShape(data, { pid: isString }),
   ContestRanklist: (data: unknown) => hasShape(data, { page: isInteger }),
   ContestReload: isVoid,
   ContestJoin: isVoid,
   ContestEnterContestMode: isVoid,
   ContestMonitorGet: isVoid,
-  ContestMonitorStop: isVoid
+  ContestMonitorStop: isVoid,
+  QueryDownloadableTestcase: isVoid,
+  DownloadTestcase: (data: unknown) =>
+    hasShape(data, { testcaseId: isNonnegativeInteger }),
+  ProblemListSearch: (data: unknown) =>
+    hasShape(data, {
+      page: isPositiveInteger,
+      keyword: isString,
+      type: isString,
+      difficulty: isNullableDifficulty,
+      tags: isIntegerArray
+    }),
+  OpenProblemFromList: (data: unknown) => hasShape(data, { pid: isString })
 } satisfies Record<keyof MessageTypes, Validator>;
 
 const uuidPattern =

@@ -24,6 +24,14 @@ import {
 import { askForCaptcha, cookieString, praseCookie } from './workspaceUtils';
 import { needLogin } from './uiUtils';
 import CsrfTokenManager from './csrfTokenManager';
+import type {
+  ProblemListFilters,
+  ProblemListResponse
+} from '@/features/problemList/types';
+import {
+  getProblemListParams,
+  parseProblemListResponse
+} from '@/features/problemList/problemListData';
 
 type EditableArticle = ArticleDetails & { content: string; top: number };
 let csrfTokenManager: CsrfTokenManager | undefined;
@@ -68,6 +76,7 @@ export namespace API {
   export const cookieDomain = 'luogu.com.cn';
   export const SEARCH_PROBLEM = (pid: string) =>
     `/problem/${pid}?_contentOnly=1`;
+  export const PROBLEM_LIST = `/problem/list`;
   export const SEARCH_CONTESTPROBLEM = (pid: string, cid: string) =>
     `/problem/${pid}?contestId=${cid}&_contentOnly=1`;
   export const SEARCH_SOLUTION = (pid: string, page: number) =>
@@ -116,6 +125,10 @@ export namespace API {
   export const CSRF_TOKEN = `/ranking`;
   export const CLIENT_ID = `/auth/login`;
   export const AUTH_CSRF_TOKEN = `/auth/login`;
+  export const QUERY_DOWNLOADABLE_TESTCASE = (rid: number) =>
+    `/fe/api/record/queryDownloadableTestcase/${rid}`;
+  export const DOWNLOAD_TESTCASE = (rid: number) =>
+    `/fe/api/record/downloadTestcase/${rid}`;
 }
 
 declare module 'axios' {
@@ -274,6 +287,13 @@ export const getProblemData = async (pid: string, cid?: number) =>
     .then(x => {
       return x.data.data;
     });
+
+export const getProblemList = async (filters: ProblemListFilters) =>
+  axios
+    .get<ProblemListResponse>(API.PROBLEM_LIST, {
+      params: getProblemListParams(filters)
+    })
+    .then(response => parseProblemListResponse(response.data));
 
 export const parseContestDataResponse = <T>(response: {
   data?: T;
@@ -460,6 +480,9 @@ export const sendMail2fa = async (captcha: string, cookie?: Cookie) =>
     API.SEND_MAIL_2FA,
     { captcha },
     {
+      headers: {
+        'X-CSRF-Token': await csrfToken(cookie, API.AUTH_CSRF_TOKEN)
+      },
       params: { endpoint: 1 },
       myInterceptors_cookie: cookie,
       myInterceptors_notCheckCookie: true
@@ -478,6 +501,51 @@ export const fetchResult = async (rid: number) =>
       } else {
         throw err;
       }
+    });
+
+export type DownloadedTestcase = {
+  input: string;
+  output: string;
+};
+
+export const queryDownloadableTestcase = async (rid: number) =>
+  axios.get<unknown>(API.QUERY_DOWNLOADABLE_TESTCASE(rid)).then(({ data }) => {
+    const testcaseId =
+      typeof data === 'object' && data !== null && 'testcaseId' in data
+        ? data.testcaseId
+        : undefined;
+    if (
+      testcaseId !== null &&
+      (typeof testcaseId !== 'number' ||
+        !Number.isInteger(testcaseId) ||
+        testcaseId < 0)
+    )
+      throw new Error('洛谷返回了无效的可下载测试点信息');
+    return testcaseId;
+  });
+
+export const downloadTestcase = async (
+  rid: number,
+  testcaseId: number
+): Promise<DownloadedTestcase> =>
+  axios
+    .post<unknown>(API.DOWNLOAD_TESTCASE(rid), { testcaseId })
+    .then(({ data }) => {
+      if (
+        typeof data !== 'object' ||
+        data === null ||
+        !('status' in data) ||
+        data.status !== 200 ||
+        !('data' in data) ||
+        typeof data.data !== 'object' ||
+        data.data === null ||
+        !('input' in data.data) ||
+        typeof data.data.input !== 'string' ||
+        !('output' in data.data) ||
+        typeof data.data.output !== 'string'
+      )
+        throw new Error('洛谷返回了无效的测试点内容');
+      return { input: data.data.input, output: data.data.output };
     });
 
 export const fetch3kHomepage = async () =>

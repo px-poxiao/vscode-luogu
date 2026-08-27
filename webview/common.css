@@ -42,6 +42,9 @@ pre > code {
   display: block;
   overflow-x: auto;
 }
+:not(pre) > code {
+  font-family: var(--vscode-editor-font-family, monospace);
+}
 pre[is='copyable-pre'] {
   min-height: 16px;
   min-width: 16px;
@@ -51,7 +54,7 @@ pre[is='copyable-pre'] {
     top: 0;
     right: 0;
     visibility: hidden;
-    > vscode-button {
+    > .vscode-button {
       margin: 0;
       > .animate {
         animation: copyButtonSuccessAnimationBegin 1s;

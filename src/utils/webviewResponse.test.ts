@@ -57,6 +57,63 @@ describe('useWebviewResponseHandle', () => {
     });
   });
 
+  it('validates testcase download IDs', async () => {
+    const webview = new FakeWebview();
+    const handler = vi.fn();
+    useWebviewResponseHandle(webview as never, { DownloadTestcase: handler });
+
+    await webview.receive({
+      type: 'DownloadTestcase',
+      data: { testcaseId: '4' },
+      uuid
+    });
+
+    expect(handler).not.toHaveBeenCalled();
+    expect(webview.postMessage).toHaveBeenCalledWith({
+      error: 'Invalid data for Webview message: DownloadTestcase',
+      uuid
+    });
+
+    await webview.receive({
+      type: 'DownloadTestcase',
+      data: { testcaseId: -1 },
+      uuid
+    });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('validates problem list filters before API dispatch', async () => {
+    const webview = new FakeWebview();
+    const handler = vi.fn();
+    useWebviewResponseHandle(webview as never, { ProblemListSearch: handler });
+
+    await webview.receive({
+      type: 'ProblemListSearch',
+      data: {
+        page: 0,
+        keyword: '',
+        type: '',
+        difficulty: null,
+        tags: []
+      },
+      uuid
+    });
+    expect(handler).not.toHaveBeenCalled();
+
+    await webview.receive({
+      type: 'ProblemListSearch',
+      data: {
+        page: 1,
+        keyword: '',
+        type: 'P',
+        difficulty: 9,
+        tags: []
+      },
+      uuid
+    });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
   it('responds to unknown message types instead of leaving requests pending', async () => {
     const webview = new FakeWebview();
     useWebviewResponseHandle(webview as never, {});
